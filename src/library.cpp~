@@ -1,0 +1,146 @@
+// Library.cpp
+#include "Library.h"
+
+Book* Library::findBookById(int id) {
+    for (auto& book : books) {
+        if (book.id == id) {
+            return &book;
+        }
+    }
+    return nullptr;
+}
+
+// Method to add a member to the library
+void Library::addMember(const std::string& name, const std::string& email, const std::string& address) {
+    static int memberIdCounter = 1;
+    Member newMember = {name, email, address};
+    // Add new member to the members vector
+    members.push_back(newMember);
+    // Display a success message indicating that the member has been added
+    std::cout << "Member added successfully with ID: " << memberIdCounter << std::endl;
+    memberIdCounter++;
+}
+
+// Method to load books from a CSV file into the library system
+void Library::loadBooksFromCSV(const std::string& filename) {
+    // Open the CSV file
+    std::ifstream file(filename);
+    // Check if the CSV file opened successfully
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl; // Display error message if unsuccessful read of CSV file
+        return;
+    }
+
+    std::string line; // String to store each line read from the file
+    // Read each line from the CSV file until the end of the file is reached
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::string token;
+        Book book;
+
+        // Extract and store the ID of the book
+        std::getline(ss, token, ',');  // id
+        token.erase(std::remove_if(token.begin(), token.end(), ::isspace), token.end());
+        book.id = std::stoi(token);
+        // Extract and store the name, author, and type of the book
+        std::getline(ss, book.name, ',');
+        std::getline(ss, book.author, ',');
+        std::getline(ss, book.type, ',');
+        // Extract and store the page count of the book
+        std::getline(ss, token);  // page count
+        book.pageCount = std::stoi(token);
+
+        books.push_back(book);
+    }
+
+    file.close();
+
+    // Display a success message indicating that the books have been loaded from the CSV file
+    std::cout << "Books loaded successfully from CSV!" << std::endl;
+}
+
+// Method to issue a book to a member
+void Library::issueBook(int bookId, int memberId) {
+    // Find the book by its ID using the findBookById method
+    Book* book = findBookById(bookId);
+    // Check if the book with the given ID exists
+    if (!book) {
+        std::cout << "Invalid book ID!" << std::endl; // Display error message if the book is not found
+        return;
+    }
+    // Check if the member ID is valid
+    if (members.size() < static_cast<size_t>(memberId)) {
+        std::cout << "Invalid member ID!" << std::endl; // Display error message if the member ID is invalid
+        return;
+    }
+    // Check if the book is already borrowed by someone
+    if (book->isBorrowed) {
+        std::cout << "Book is already borrowed!" << std::endl; // Display error message if the book is already borrowed
+        return;
+    }
+    // If all checks pass, set the book as borrowed and update its due date
+    book->isBorrowed = true; // Set the book's borrowed status to true
+    time_t now = time(0);
+    book->dueDate = now + 3 * 24 * 60 * 60; // 3 days from now
+    members[memberId - 1].borrowedBooks.push_back(book); // Add the book to the member's borrowed books
+
+    // Success message: book borrowed
+    std::cout << "Book issued successfully!" << std::endl;
+}
+
+// Method to return a borrowed book
+void Library::returnBook(int bookId, int memberId) {
+    // Find the book by its ID using the findBookById method
+    Book* book = findBookById(bookId);
+
+    // Check if the book with the given ID exists
+    if (!book) {
+        std::cout << "Invalid book ID!" << std::endl; // Display error message if the book is not found
+        return; // Return without further processing
+    }
+
+    // Check if the member ID is valid
+    if (memberId <= 0 || memberId > static_cast<int>(members.size())) {
+        std::cout << "Invalid member ID!" << std::endl; // Display error message if the member ID is not found
+        return; // Return without further processing
+    }
+
+    // Check if the book is currently borrowed
+    if (!book->isBorrowed) {
+        std::cout << "Book is not borrowed!" << std::endl; // Display error message if the book is not borrowed
+        return; // Return without further processing
+    }
+
+    // Calculate the fine, if applicable, based on the due date of the book
+    time_t now = time(0); // Get current time in seconds
+    double diff = difftime(now, book->dueDate);
+    if (diff > 0) {
+        int fine = static_cast<int>(diff / (24 * 60 * 60)); // Calculate number of days overdue
+        std::cout << "Fine to be paid: £" << fine << std::endl; // Display fine amount
+    }
+
+    // Find the book in the member's list of borrowed books
+    std::vector<Book*>& memberBorrowedBooks = members[memberId - 1].borrowedBooks;
+    auto it = std::find(memberBorrowedBooks.begin(), memberBorrowedBooks.end(), book);
+
+    // If the book is found in the member's list of borrowed books, return the book
+    if (it != memberBorrowedBooks.end()) {
+        memberBorrowedBooks.erase(it);
+        book->isBorrowed = false; // Set the book's borrowed status to false
+        std::cout << "Book returned successfully!" << std::endl;
+    } else {
+        // If the book is not found in the member's list of borrowed books, display an error message
+        std::cout << "The book with ID " << bookId << " is not borrowed by member ID " << memberId << std::endl;
+    }
+}
+
+// Method to display books borrowed by a specific member
+void Library::displayBooksByMember(int memberId) {
+    // Check if the provided memberId is valid
+    if (members.size() < static_cast<size_t>(memberId)) {
+        std::cout << "Invalid member ID!" << std::endl; // Display error message if the member ID is invalid
+        return;
+    }
+
+    std::cout << "Books borrowed by Member ID " << memberId << ":" << std::endl;
+    // Iterate through the borrowedBooks vector of the specified member and display details of each book

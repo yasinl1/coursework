@@ -1,3 +1,7 @@
+// Library.h
+#ifndef LIBRARY_H
+#define LIBRARY_H
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -25,3 +29,21 @@ struct Member {
   std::string address; //member address
   std::vector<Book*> borrowedBooks; //books members have borrowed
 };
+//library class to mange books and members
+class Library {
+private:
+  std::vector<Book> books; //list of books
+  std::vector<Member> members; //list of members registered with library
+
+  //method to find book by id
+public:
+    Book* findBookById(int id) {
+        for (auto& book : books) {
+            if (book.id == id) {
+                return &book;
+            }
+        }
+        return nullptr;  // Return nullptr if book not found
+    }
+
+    #endif
