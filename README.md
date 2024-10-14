@@ -12,7 +12,9 @@ Calculate fines for overdue books
 Requirements
 
 C++ compiler with C++11 support or later
+
 Make build system
+
 Catch2 for unit testing
 
 Project Structure
